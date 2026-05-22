@@ -207,7 +207,7 @@ export default function CulturalNightPage() {
             className="text-center"
           >
             <h2 className="font-display text-3xl font-bold md:text-4xl">
-              The Night's Timeline
+              The Night&apos;s Timeline
             </h2>
             <p className="mt-4 text-text-secondary">
               Three phases to construct, showcase, and celebrate intercultural connection.
@@ -310,8 +310,8 @@ export default function CulturalNightPage() {
               The Rules of Engagement
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm text-text-secondary leading-relaxed">
-              No digital displays, screens, or complex projections are permitted. Slides or presentations are banned. 
-              The goal is to captivate and immerse delegates through physical craft, local storytelling, authentic games, 
+              No digital displays, screens, or complex projections are permitted. Slides or presentations are banned.
+              The goal is to captivate and immerse delegates through physical craft, local storytelling, authentic games,
               live music, dances, and audience connection.
             </p>
           </motion.div>
@@ -325,7 +325,7 @@ export default function CulturalNightPage() {
             Represent Your Culture
           </h2>
           <p className="mt-4 text-text-secondary">
-            Join international Exchange Participants at the summer's premier gathering. Connect, create, and share your home with the world.
+            Join international Exchange Participants at the summer&apos;s premier gathering. Connect, create, and share your home with the world.
           </p>
           <Button href="/register" size="lg" className="mt-8">
             Register Now
