@@ -35,3 +35,4 @@ yarn-error.log*
 
 # prisma
 /prisma/migrations/**/migration_lock.toml
+env.local
