@@ -1,0 +1,274 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  role         Role     @default(DELEGATE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  delegate       Delegate?
+  facilitatorApp FacilitatorApplication?
+  reactions      Reaction[]
+  comments       Comment[]
+  bookmarks      SessionBookmark[]
+  notifications  Notification[]
+  connections    Connection[] @relation("UserConnections")
+  connectedBy    Connection[] @relation("ConnectedByUser")
+
+  @@map("users")
+}
+
+enum Role {
+  DELEGATE
+  FACILITATOR
+  OC_MEMBER
+  ADMIN
+}
+
+model Delegate {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id])
+  delegateId     String  @unique
+  firstName      String
+  lastName       String
+  nationality    String
+  profilePicture String?
+  bio            String?
+  interests      String[]
+
+  arrivalDate    DateTime?
+  departureDate  DateTime?
+  dietaryPrefs   String[]
+  emergencyName  String?
+  emergencyPhone String?
+
+  paymentStatus  PaymentStatus  @default(PENDING)
+  paymentProof   String?
+  status         DelegateStatus @default(PENDING)
+  checkInAt      DateTime?
+  qrToken        String         @unique @default(cuid())
+
+  sessionInterests String[]
+  bookedSessions   SessionBookmark[]
+
+  @@map("delegates")
+}
+
+enum PaymentStatus {
+  PENDING
+  UPLOADED
+  CONFIRMED
+  REJECTED
+}
+
+enum DelegateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHECKED_IN
+}
+
+model Session {
+  id            String                  @id @default(cuid())
+  title         String
+  description   String
+  objectives    String[]
+  category      SessionCategory
+  facilitatorId String?
+  facilitator   FacilitatorApplication? @relation(fields: [facilitatorId], references: [id])
+  day           Int
+  startTime     DateTime
+  endTime       DateTime
+  location      String
+  capacity      Int?
+  tags          String[]
+  status        SessionStatus           @default(DRAFT)
+  bookmarks     SessionBookmark[]
+  createdAt     DateTime                @default(now())
+
+  @@map("sessions")
+}
+
+enum SessionCategory {
+  LEADERSHIP
+  CULTURAL_EXCHANGE
+  PERSONAL_DEVELOPMENT
+  REFLECTION
+  NETWORKING
+  WORKSHOP
+  KEYNOTE
+  ACTIVITY
+}
+
+enum SessionStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+model SessionBookmark {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  sessionId  String
+  session    Session   @relation(fields: [sessionId], references: [id])
+  delegateId String?
+  delegate   Delegate? @relation(fields: [delegateId], references: [id])
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, sessionId])
+  @@map("session_bookmarks")
+}
+
+model FacilitatorApplication {
+  id                 String            @id @default(cuid())
+  userId             String            @unique
+  user               User              @relation(fields: [userId], references: [id])
+  fullName           String
+  email              String
+  sessionTitle       String
+  sessionObjectives  String
+  targetAudience     String
+  duration           Int
+  interactiveMethods String
+  materialsNeeded    String?
+  sessionPlanUrl     String?
+  status             ApplicationStatus @default(PENDING)
+  reviewNotes        String?
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  sessions           Session[]
+  createdAt          DateTime          @default(now())
+
+  @@map("facilitator_applications")
+}
+
+enum ApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Post {
+  id        String     @id @default(cuid())
+  type      PostType
+  title     String?
+  content   String
+  mediaUrl  String?
+  tags      String[]
+  pinned    Boolean    @default(false)
+  authorId  String
+  reactions Reaction[]
+  comments  Comment[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("posts")
+}
+
+enum PostType {
+  ANNOUNCEMENT
+  PROMO
+  SPEAKER_SPOTLIGHT
+  COUNTDOWN
+  UPDATE
+  REMINDER
+}
+
+model Reaction {
+  id     String       @id @default(cuid())
+  postId String
+  post   Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User         @relation(fields: [userId], references: [id])
+  emoji  ReactionType
+
+  @@unique([postId, userId])
+  @@map("reactions")
+}
+
+enum ReactionType {
+  HEART
+  FIRE
+  CLAP
+  GLOBE
+  STAR
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  REGISTRATION_APPROVED
+  REGISTRATION_REJECTED
+  SESSION_REMINDER
+  SCHEDULE_CHANGE
+  ANNOUNCEMENT
+  FACILITATOR_APPROVED
+  FACILITATOR_REJECTED
+  GENERAL
+}
+
+model Connection {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation("UserConnections", fields: [userId], references: [id])
+  connectedToId String
+  connectedTo   User     @relation("ConnectedByUser", fields: [connectedToId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, connectedToId])
+  @@map("connections")
+}
+
+model GalleryItem {
+  id         String    @id @default(cuid())
+  url        String
+  type       MediaType
+  caption    String?
+  uploadedBy String?
+  featured   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@map("gallery_items")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
