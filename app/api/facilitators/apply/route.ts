@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       data: {
         fullName: fullName.trim(),
         email: email.toLowerCase().trim(),
-        nationality,
+        nationality: nationality.trim(),
         experience: experience.trim(),
         sessionTitle: sessionTitle.trim(),
         sessionCategory: sessionCategory,
