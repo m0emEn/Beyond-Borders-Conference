@@ -66,8 +66,8 @@ export function Navbar() {
         </ul>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Button href="/contact" size="sm">
-            Contact
+          <Button href="/register" size="sm">
+            Register Now
           </Button>
         </div>
 
@@ -123,7 +123,7 @@ export function Navbar() {
                 transition={{ delay: NAV_LINKS.length * 0.05 }}
                 className="mt-4"
               >
-                <Button href="/contact">Contact</Button>
+                <Button href="/register">Register Now</Button>
               </motion.li>
             </ul>
           </motion.div>
