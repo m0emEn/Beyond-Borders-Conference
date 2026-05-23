@@ -1,22 +1,24 @@
 import { cn } from "@/lib/utils";
 
-interface BadgeProps {
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "purple" | "teal" | "amber" | "pink" | "red";
   children: React.ReactNode;
-  variant?: "default" | "purple" | "teal" | "amber";
-  className?: string;
 }
 
 const variantStyles = {
-  default: "bg-surface-2 text-text-secondary",
-  purple: "bg-accent-purple/20 text-accent-purple border border-accent-purple/30",
-  teal: "bg-accent-teal/20 text-accent-teal border border-accent-teal/30",
-  amber: "bg-accent-amber/20 text-accent-amber border border-accent-amber/30",
+  default: "bg-surface-2 text-text-secondary border-white/10",
+  purple: "bg-accent-purple/10 text-accent-purple border-accent-purple/20",
+  teal: "bg-accent-teal/10 text-accent-teal border-accent-teal/20",
+  amber: "bg-accent-amber/10 text-accent-amber border-accent-amber/20",
+  pink: "bg-accent-pink/10 text-accent-pink border-accent-pink/20",
+  red: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
 export function Badge({
   children,
   variant = "default",
   className,
+  ...props
 }: BadgeProps) {
   return (
     <span

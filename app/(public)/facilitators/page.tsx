@@ -14,11 +14,10 @@ export default function FacilitatorsPage() {
       />
       <div className="section-container pb-20 text-center">
         <p className="text-text-secondary">
-          Facilitator applications with PDF upload and admin review — coming in
-          Phase 2.
+          We are now accepting session proposals. Submit your detailed session plan to join the Beyond Borders speakers lineup.
         </p>
-        <Button href="/contact" className="mt-6" variant="outline">
-          Contact us to apply early
+        <Button href="/facilitators/apply" className="mt-6">
+          Apply to Facilitate
         </Button>
       </div>
       <FacilitatorsPreview />

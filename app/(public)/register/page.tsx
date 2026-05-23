@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { UploadDropzone } from "@/lib/uploadthing";
 
 const STEPS = [
   { id: 1, label: "Profile", icon: User },
@@ -486,16 +487,33 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="flex flex-col gap-1.5 mt-4">
-                    <label className="text-xs text-text-secondary font-medium">
-                      Payment Receipt URL or Reference Code (Optional)
+                    <label className="text-xs text-text-secondary font-medium mb-1">
+                      Payment Receipt Upload (Optional)
                     </label>
-                    <input
-                      type="text"
-                      value={paymentProof}
-                      onChange={(e) => setPaymentProof(e.target.value)}
-                      placeholder="e.g. Upload receipt to Google Drive/Imgur and paste URL here"
-                      className="glass-card px-4 py-3 text-sm text-text-primary bg-white/5 outline-none border border-white/10 focus:border-accent-purple/60 rounded-xl transition"
-                    />
+                    {paymentProof ? (
+                      <div className="flex items-center justify-between p-4 glass-card bg-accent-teal/10 border border-accent-teal/30 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="text-accent-teal" size={20} />
+                          <span className="text-sm text-accent-teal font-medium">Receipt Uploaded Successfully</span>
+                        </div>
+                        <Button type="button" variant="glass" size="sm" onClick={() => setPaymentProof("")}>
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <UploadDropzone
+                        endpoint="paymentProof"
+                        onClientUploadComplete={(res) => {
+                          if (res && res[0]) {
+                            setPaymentProof(res[0].url);
+                          }
+                        }}
+                        onUploadError={(error: Error) => {
+                          setError(`Upload failed: ${error.message}`);
+                        }}
+                        className="ut-label:text-text-primary ut-button:bg-accent-purple hover:ut-button:bg-accent-purple/90 border border-white/10 glass-card p-4 rounded-xl"
+                      />
+                    )}
                   </div>
 
                   <div className="flex items-start gap-3 mt-6">

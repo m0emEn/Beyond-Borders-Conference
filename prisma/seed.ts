@@ -1,10 +1,166 @@
-import { PrismaClient, PostType, SessionCategory, SessionStatus, MediaType } from "@prisma/client";
+import { PrismaClient, PostType, SessionCategory, SessionStatus, MediaType, OCRole, OCDepartment, TaskPriority, TaskStatus } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // 1. Seed sample Posts (Announcements)
-  const welcomePost = await prisma.post.upsert({
+  // Clear any existing OC-related seed records to prevent primary key conflicts
+  await prisma.task.deleteMany({});
+  await prisma.oCMember.deleteMany({});
+
+  // 1. Hash the default testing password "beyond2026"
+  const passwordHash = bcrypt.hashSync("beyond2026", 10);
+
+  // 2. Seed OC VPs & OCP
+  const ocp = await prisma.oCMember.create({
+    data: {
+      fullName: "Moemen Sfaxi",
+      email: "moemen@aiesec.net",
+      passwordHash,
+      role: OCRole.OCP,
+      department: OCDepartment.GENERAL,
+    },
+  });
+
+  const vpDxp = await prisma.oCMember.create({
+    data: {
+      fullName: "Amine Daoud",
+      email: "amine@aiesec.net",
+      passwordHash,
+      role: OCRole.OCVP_DXP,
+      department: OCDepartment.DXP,
+      managerId: ocp.id,
+    },
+  });
+
+  const vpMkt = await prisma.oCMember.create({
+    data: {
+      fullName: "Oussama",
+      email: "oussama@aiesec.net",
+      passwordHash,
+      role: OCRole.OCVP_MKT,
+      department: OCDepartment.MKT,
+      managerId: ocp.id,
+    },
+  });
+
+  const vpFinance = await prisma.oCMember.create({
+    data: {
+      fullName: "Yassine Trabelsi",
+      email: "yassine@aiesec.net",
+      passwordHash,
+      role: OCRole.OCVP_FINANCE,
+      department: OCDepartment.FINANCE,
+      managerId: ocp.id,
+    },
+  });
+
+  const vpLogEr = await prisma.oCMember.create({
+    data: {
+      fullName: "Sarra Ghedas",
+      email: "sarra@aiesec.net",
+      passwordHash,
+      role: OCRole.OCVP_LOG_ER,
+      department: OCDepartment.LOG_ER,
+      managerId: ocp.id,
+    },
+  });
+
+  // 3. Seed Department Members
+  const memberDxp = await prisma.oCMember.create({
+    data: {
+      fullName: "Linda",
+      email: "linda@aiesec.net",
+      passwordHash,
+      role: OCRole.OC_DXP_MEMBER,
+      department: OCDepartment.DXP,
+      managerId: vpDxp.id,
+    },
+  });
+
+  const memberMkt = await prisma.oCMember.create({
+    data: {
+      fullName: "Bilel",
+      email: "bilel@aiesec.net",
+      passwordHash,
+      role: OCRole.OC_MKT_MEMBER,
+      department: OCDepartment.MKT,
+      managerId: vpMkt.id,
+    },
+  });
+
+  // 4. Seed Relational Tasks
+  await prisma.task.create({
+    data: {
+      title: "Finalize catering contract and menu",
+      description: "Ensure food counts align with registered vegetarian/gluten-free EPs.",
+      assignedToId: vpLogEr.id,
+      createdById: ocp.id,
+      deadline: new Date("2026-06-05T23:59:59Z"),
+      priority: TaskPriority.URGENT,
+      status: TaskStatus.PENDING,
+      department: OCDepartment.LOG_ER,
+      progressNotes: "Initial quote received. Checking prices.",
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      title: "Verify corporate sponsorship payout (BNA)",
+      description: "Confirm wire receipt in BNA account.",
+      assignedToId: vpFinance.id,
+      createdById: ocp.id,
+      deadline: new Date("2026-05-24T23:59:59Z"),
+      priority: TaskPriority.URGENT,
+      status: TaskStatus.IN_PROGRESS,
+      department: OCDepartment.FINANCE,
+      progressNotes: "Awaiting final clearance invoice validation.",
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      title: "Book transfer shuttle buses",
+      description: "Coordinate shuttle timings with insat EPs.",
+      assignedToId: vpLogEr.id,
+      createdById: ocp.id,
+      deadline: new Date("2026-06-10T23:59:59Z"),
+      priority: TaskPriority.HIGH,
+      status: TaskStatus.IN_PROGRESS,
+      department: OCDepartment.LOG_ER,
+      progressNotes: "Bus rental quote finalized.",
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      title: "Design social media speaker highlights",
+      description: "Publish promotional layouts on Instagram.",
+      assignedToId: memberMkt.id,
+      createdById: vpMkt.id,
+      deadline: new Date("2026-06-01T23:59:59Z"),
+      priority: TaskPriority.MEDIUM,
+      status: TaskStatus.COMPLETED,
+      department: OCDepartment.MKT,
+      progressNotes: "Designed and posted on Instagram feed.",
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      title: "Send invitation check-in QR codes",
+      description: "Dispatch check-in visually rich entrance ticket EPs.",
+      assignedToId: memberDxp.id,
+      createdById: vpDxp.id,
+      deadline: new Date("2026-06-15T23:59:59Z"),
+      priority: TaskPriority.HIGH,
+      status: TaskStatus.PENDING,
+      department: OCDepartment.DXP,
+    },
+  });
+
+  // 5. Seed sample Posts (Announcements)
+  await prisma.post.upsert({
     where: { id: "seed-welcome-post" },
     update: {},
     create: {
@@ -17,7 +173,7 @@ async function main() {
     },
   });
 
-  const venuePost = await prisma.post.upsert({
+  await prisma.post.upsert({
     where: { id: "seed-venue-post" },
     update: {},
     create: {
@@ -30,10 +186,10 @@ async function main() {
     },
   });
 
-  // 2. Seed sample Sessions
+  // 6. Seed sample Sessions
   const baseTime = new Date("2026-07-15T09:00:00+01:00");
   
-  const leadershipSession = await prisma.session.upsert({
+  await prisma.session.upsert({
     where: { id: "seed-session-1" },
     update: {},
     create: {
@@ -43,8 +199,8 @@ async function main() {
       objectives: ["Define global leadership framework", "Identify cross-cultural collaboration models"],
       category: SessionCategory.LEADERSHIP,
       day: 1,
-      startTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 2), // 11:00 AM
-      endTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 3.5), // 12:30 PM
+      startTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 2),
+      endTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 3.5),
       location: "Grand Ballroom A",
       capacity: 100,
       tags: ["leadership", "impact"],
@@ -52,7 +208,7 @@ async function main() {
     },
   });
 
-  const culturalSession = await prisma.session.upsert({
+  await prisma.session.upsert({
     where: { id: "seed-session-2" },
     update: {},
     create: {
@@ -62,8 +218,8 @@ async function main() {
       objectives: ["Improve self-reflection in diverse environments", "Engage in experiential simulation"],
       category: SessionCategory.CULTURAL_EXCHANGE,
       day: 2,
-      startTime: new Date(baseTime.getTime() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000 * 5), // Day 2 2:00 PM
-      endTime: new Date(baseTime.getTime() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000 * 7), // Day 2 4:00 PM
+      startTime: new Date(baseTime.getTime() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000 * 5),
+      endTime: new Date(baseTime.getTime() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000 * 7),
       location: "Oceanview Terrace",
       capacity: 80,
       tags: ["culture", "workshop"],
@@ -71,8 +227,8 @@ async function main() {
     },
   });
 
-  // 3. Seed general Agenda Items (Coffee breaks, opening, lunch, etc.)
-  const openingAgenda = await prisma.agendaItem.upsert({
+  // 7. Seed general Agenda Items
+  await prisma.agendaItem.upsert({
     where: { id: "seed-agenda-1" },
     update: {},
     create: {
@@ -81,13 +237,13 @@ async function main() {
       description: "Welcome address from the AIESEC in Bizerte Organizing Committee and local delegation roll-calls.",
       day: 1,
       startTime: baseTime,
-      endTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 1.5), // 10:30 AM
+      endTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 1.5),
       location: "Grand Ballroom A",
       category: "Activity",
     },
   });
 
-  const breakAgenda = await prisma.agendaItem.upsert({
+  await prisma.agendaItem.upsert({
     where: { id: "seed-agenda-2" },
     update: {},
     create: {
@@ -95,15 +251,15 @@ async function main() {
       title: "Coffee Break & Networking",
       description: "Meet your fellow EPs and discuss local projects.",
       day: 1,
-      startTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 1.5), // 10:30 AM
-      endTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 2), // 11:00 AM
+      startTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 1.5),
+      endTime: new Date(baseTime.getTime() + 60 * 60 * 1000 * 2),
       location: "Foyer & Garden Lounge",
       category: "Networking",
     },
   });
 
-  // 4. Seed sample Facilitators
-  const facilitator1 = await prisma.facilitator.upsert({
+  // 8. Seed sample Facilitators
+  await prisma.facilitator.upsert({
     where: { email: "sarah.k@aiesec.net" },
     update: {},
     create: {
@@ -115,8 +271,8 @@ async function main() {
     },
   });
 
-  // 5. Seed sample GalleryMedia
-  const gallery1 = await prisma.galleryMedia.upsert({
+  // 9. Seed sample GalleryMedia
+  await prisma.galleryMedia.upsert({
     where: { id: "seed-gallery-1" },
     update: {},
     create: {
@@ -128,13 +284,14 @@ async function main() {
     },
   });
 
-  console.log("Simplified seed completed successfully:", {
-    welcomePost: welcomePost.title,
-    venuePost: venuePost.title,
-    sessionsCount: 2,
-    agendaCount: 2,
-    facilitator: facilitator1.fullName,
-    galleryItem: gallery1.caption,
+  console.log("Refined AIESEC OC seed completed successfully!", {
+    ocp: ocp.fullName,
+    dxpLeader: vpDxp.fullName,
+    mktLeader: vpMkt.fullName,
+    finLeader: vpFinance.fullName,
+    logLeader: vpLogEr.fullName,
+    memberDxp: memberDxp.fullName,
+    memberMkt: memberMkt.fullName,
   });
 }
 
