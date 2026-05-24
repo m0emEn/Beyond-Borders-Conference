@@ -25,11 +25,37 @@ export function Navbar() {
     setMobileOpen(false);
   }, [pathname]);
 
+  // Lock body scroll when mobile menu is open without causing scroll jumps
+  useEffect(() => {
+    if (mobileOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      document.body.style.overflow = "hidden";
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0", 10) * -1);
+      }
+    }
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
   return (
     <header
       className={cn(
         "fixed left-0 right-0 top-0 z-50 transition-all duration-300",
-        scrolled ? "glass-card border-b border-white/10 py-3" : "bg-transparent py-5"
+        scrolled ? "bg-bg/80 backdrop-blur-md border-b border-white/10 py-3" : "bg-transparent py-5"
       )}
     >
       <nav className="section-container flex items-center justify-between gap-4">
@@ -89,9 +115,9 @@ export function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            className="fixed inset-0 top-0 z-40 flex flex-col bg-bg/98 backdrop-blur-xl lg:hidden"
+            className="fixed inset-0 top-0 z-40 flex flex-col bg-bg/75 backdrop-blur-2xl lg:hidden overflow-y-auto"
           >
-            <div className="flex justify-end p-4">
+            <div className="flex justify-end p-4 shrink-0">
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
@@ -101,7 +127,7 @@ export function Navbar() {
                 <X size={24} />
               </button>
             </div>
-            <ul className="flex flex-1 flex-col items-center justify-center gap-6">
+            <ul className="flex flex-col items-center gap-6 py-12 px-4 my-auto shrink-0 w-full">
               {NAV_LINKS.map(({ href, label }, i) => (
                 <motion.li
                   key={href}

@@ -13,13 +13,13 @@ We have completely transitioned the dashboard from a generic portal into a **rol
 * **Session Cookie Setting**: Successful credentials validation sets a secure `admin_session` cookie valid for 7 days.
 * **Database Seeding**: Updated `prisma/seed.ts` to clear and pre-populate the database with actual AIESEC OC accounts, VPs, members, and relational department tasks using secure hashed passwords.
 
-### 🛡️ 1.2 Next.js Middleware Route Protection
-* **Server-Side Route Interceptor**: Implemented a root [middleware.ts](file:///c:/Users/admin/Documents/aiesec/Beyond%20Borders/website/Beyond-Borders-Conference/middleware.ts) file that intercepts all `/admin/*` routes (except `/admin/login`). It verifies the presence of the secure session cookie `admin_session` and performs immediate server-side redirects to `/admin/login` on failure. This ensures zero data leakage or client bundle exposure for unauthenticated users.
+### 🛡️ 1.2 Next.js Proxy Route Protection
+* **Server-Side Route Interceptor**: Implemented a root [proxy.ts](./proxy.ts) file that intercepts all `/admin/*` routes (except `/admin/login`). It verifies the presence of the secure session cookie `admin_session` and performs immediate server-side redirects to `/admin/login` on failure. This ensures zero data leakage or client bundle exposure for unauthenticated users.
 * **Cookie Cleanup on Logout**: The layout's logout handler clears both `localStorage` state and the `admin_session` cookie on logout.
 
 ### 🌐 1.3 Role Clearance Guards
 * **Dynamic Sidebar Filter**: The sidebar navigation automatically audits the authenticated user's role, rendering **only** the links they have permissions to view.
-* **Route Interceptor**: Bypassing navigation filters (e.g. entering `/admin/finances` manually) triggers a global layout guard in [layout.tsx](file:///c:/Users/admin/Documents/aiesec/Beyond%20Borders/website/Beyond-Borders-Conference/app/admin/layout.tsx), blocking page rendering and displaying a frosted-glass **"Security Clearance Insufficient"** overlay with the OCP elevation details.
+* **Route Interceptor**: Bypassing navigation filters (e.g. entering `/admin/finances` manually) triggers a global layout guard in [layout.tsx](./app/admin/layout.tsx), blocking page rendering and displaying a frosted-glass **"Security Clearance Insufficient"** overlay with the OCP elevation details.
 
 ### 📊 1.4 Personalized Department Dashboards
 The home view (`/admin`) automatically reads the active member's department, displaying a highly personalized operations suite with tailored KPIs, active checklists, and responsive data charts:
@@ -45,7 +45,7 @@ All seeded accounts share the master testing password **`beyond2026`**. You can 
 | **Linda** | DXP | **OC DXP Member** | `linda@aiesec.net` | `beyond2026` |
 | **Bilel** | MKT | **OC MKT Member** | `bilel@aiesec.net` | `beyond2026` |
 
-*Tip: The [login screen](file:///c:/Users/admin/Documents/aiesec/Beyond%20Borders/website/Beyond-Borders-Conference/app/admin/login/page.tsx) integrates a **"Quick Clearance Bypass"** grid, allowing you to autofill these credentials with a single click during testing!*
+*Tip: The [login screen](./app/admin/login/page.tsx) integrates a **"Quick Clearance Bypass"** grid, allowing you to autofill these credentials with a single click during testing!*
 
 ---
 
@@ -53,7 +53,7 @@ All seeded accounts share the master testing password **`beyond2026`**. You can 
 
 We have completed a comprehensive **Full Project Audit** mapping out the exact steps required to transition this platform from its current hybrid prototype-production state into full production readiness.
 
-For the exhaustive and complete step-by-step roadmap, please refer to the detailed **[Project Audit Report & Implementation Roadmap](file:///C:/Users/admin/.gemini/antigravity-ide/brain/2ddd290c-ff89-4a4d-8740-58a9edb1c02c/project_audit_report.md)** artifact. 
+For the exhaustive and complete step-by-step roadmap, please refer to the detailed **[Project Audit Report & Implementation Roadmap](file:///C:/Users/eyasf/.gemini/antigravity-ide/brain/2ddd290c-ff89-4a4d-8740-58a9edb1c02c/project_audit_report.md)** artifact. 
 
 ### Summary of the Implementation Phases:
 * **Phase 1: The Data Wiring Phase** - Replacing mock arrays in `/admin` with live Prisma connections & Server Actions.

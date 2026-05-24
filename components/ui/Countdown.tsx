@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCountdown } from "@/hooks/useCountdown";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,9 @@ interface CountdownProps {
   className?: string;
 }
 
-function TimeUnit({ value, label }: { value: number; label: string }) {
+function TimeUnit({ value, label }: { value: number | string; label: string }) {
+  const displayValue = typeof value === "number" ? String(value).padStart(2, "0") : value;
+  
   return (
     <div className="flex flex-col items-center">
       <div className="glass-card flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20">
@@ -21,7 +24,7 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
             exit={{ opacity: 0, y: 8 }}
             className="font-mono text-2xl font-bold sm:text-3xl"
           >
-            {String(value).padStart(2, "0")}
+            {displayValue}
           </motion.span>
         </AnimatePresence>
       </div>
@@ -33,8 +36,29 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
 }
 
 export function Countdown({ targetDate, className }: CountdownProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { days, hours, minutes, seconds, isComplete } =
     useCountdown(targetDate);
+
+  if (!isMounted) {
+    return (
+      <div
+        className={cn("flex flex-wrap justify-center gap-4 sm:gap-6", className)}
+        role="timer"
+        aria-live="polite"
+      >
+        <TimeUnit value="--" label="Days" />
+        <TimeUnit value="--" label="Hours" />
+        <TimeUnit value="--" label="Minutes" />
+        <TimeUnit value="--" label="Seconds" />
+      </div>
+    );
+  }
 
   if (isComplete) {
     return (
@@ -57,3 +81,4 @@ export function Countdown({ targetDate, className }: CountdownProps) {
     </div>
   );
 }
+

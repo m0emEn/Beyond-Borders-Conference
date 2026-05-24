@@ -164,7 +164,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ────────────────── LEFT SIDEBAR (DESKTOP) ────────────────── */}
       <aside
         className={cn(
-          "hidden lg:flex flex-col border-r border-white/10 bg-surface-1/40 backdrop-blur-xl relative transition-all duration-300 z-30 shrink-0",
+          "hidden lg:flex flex-col border-r border-white/10 bg-surface-1/40 backdrop-blur-xl sticky top-0 h-screen transition-all duration-300 z-30 shrink-0",
           isSidebarCollapsed ? "w-20" : "w-64"
         )}
       >
@@ -244,28 +244,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             initial={{ opacity: 0, x: "-100%" }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "-100%" }}
-            className="fixed inset-0 top-16 bg-bg/98 backdrop-blur-2xl z-40 lg:hidden flex flex-col"
+            className="fixed inset-x-0 bottom-0 top-16 bg-bg/98 backdrop-blur-2xl z-40 lg:hidden overflow-y-auto px-6 py-8"
           >
-            <nav className="flex-1 overflow-y-auto px-6 py-8">
-              <ul className="space-y-2">
-                {filteredSidebar.map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname === item.href;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={cn("flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition", active ? "bg-gradient-cta text-white" : "text-text-secondary hover:text-text-primary")}
-                      >
-                        <Icon size={20} className={active ? "text-white" : "text-text-muted"} />
-                        <span>{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
+            <ul className="space-y-2">
+              {filteredSidebar.map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.href;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn("flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition", active ? "bg-gradient-cta text-white" : "text-text-secondary hover:text-text-primary")}
+                    >
+                      <Icon size={20} className={active ? "text-white" : "text-text-muted"} />
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </motion.div>
         )}
       </AnimatePresence>

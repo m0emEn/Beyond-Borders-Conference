@@ -6,7 +6,7 @@ import { OCRole, OCDepartment, OCMember } from "@prisma/client";
  * Gets the current authenticated user from the admin_session cookie
  */
 export async function getCurrentUser(): Promise<OCMember | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("admin_session");
 
   if (!sessionCookie || !sessionCookie.value) {

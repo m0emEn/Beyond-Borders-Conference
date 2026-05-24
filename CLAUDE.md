@@ -23,26 +23,30 @@
 ### Frontend
 | Layer | Choice | Reason |
 |---|---|---|
-| Framework | **Next.js 14 (App Router)** | SSR + SSG, fast, SEO-friendly |
-| Language | **TypeScript** (strict mode) | Type safety across the codebase |
-| Styling | **Tailwind CSS v3** | Utility-first + custom variables |
-| Animation | **Framer Motion** | Fade-ins, transition reveals, hover states |
-| Icons | **Lucide React** | Consistent SVG icons |
-| Forms & Validation | **Custom state hooks & JS checks** | Highly tailored client-side stepper validation |
-| Dates | **date-fns** | Dates and countdown calculation |
+| Framework | **Next.js 16 (App Router)** | SSR + SSG, fast, type-safe route boundaries, SEO-friendly |
+| Language | **TypeScript** (strict mode) | Type safety across the entire application |
+| Styling | **Tailwind CSS v3** | Utility-first with curated custom CSS variables |
+| Animation | **Framer Motion** | Complex transition states, page fade-ins, and pop-layout modals |
+| Icons | **Lucide React** | Sleek, consistent modern vector icons |
+| Validation | **Zod** | Schema definition and strict runtime type verification |
+| Charts & KPIs | **Recharts** | Fully responsive SVG charts for the Department Command Centers |
+| Toasts | **Sonner** | Clean, responsive modern visual feedback triggers |
+| Dates | **date-fns** | Date calculations and timezone management |
 
 ### Backend & Database
 | Layer | Choice | Reason |
 |---|---|---|
-| Runtime | **Node.js 20 LTS** | Stable server execution |
-| API | **Next.js Route Handlers** | Server-side endpoints |
-| Database | **PostgreSQL** via **Supabase** | Cloud hosted relational DB |
-| ORM | **Prisma** | Safe database operations & schema generation |
-| Email | **Resend REST API** | Fast automated registration email confirmations via native fetch requests |
+| Runtime | **Node.js 20 LTS** | Stable backend server execution environment |
+| API Layer | **Next.js Route Handlers & Safe Actions** | Type-safe Server Actions (`next-safe-action`) & REST endpoints |
+| Database | **PostgreSQL** via **Supabase** | Cloud-hosted secure relational database |
+| ORM | **Prisma** | Modern database client mapping, migrations, and schema definition |
+| Uploads | **UploadThing** | Direct-to-storage secure upload gateway for PDFs and payment proofs |
+| Email | **Resend REST API** | Rapid transactional registration updates dispatched via native fetch requests |
+| Check-in | **qrcode & react-qr-reader** | Dynamic QR code generation & client-side scanner logic |
 
 ### Authentication & Phase Status
 *   **Public Access**: Completely public! EPs can submit registrations without creating an account.
-*   **Admin Panel [FULLY OPERATIONAL]**: Protected admin dashboard for AIESEC Organizing Committee members. Features secure credential authentication with `bcryptjs` password hashing, root Next.js middleware routing protection via a secure `admin_session` cookie, role-based clearance limits, dynamic sidebar link filtering, and simulated debugging profiles.
+*   **Admin Panel [FULLY OPERATIONAL]**: Protected admin dashboard for AIESEC Organizing Committee members. Features secure credential authentication with `bcryptjs` password hashing, root Next.js proxy routing protection via a secure `admin_session` cookie, role-based clearance limits, dynamic sidebar link filtering, and simulated debugging profiles.
 
 ---
 
@@ -98,8 +102,9 @@ beyond-borders/
 ├── prisma/
 │   ├── schema.prisma             # PostgreSQL Database schema
 │   └── seed.ts                   # Seeds standard demo records
-└── types/
-    └── index.ts                  # Type configurations
+├── types/
+│   └── index.ts                  # Type configurations
+├── proxy.ts                      # Secure route proxy / authentication checks
 ```
 
 ---
@@ -434,7 +439,7 @@ model FeedbackSurvey {
     *   **OCVP FINANCE**: Actual ledgers tracking transaction cash flow and a dynamic break-even slider calculator.
     *   **OCVP LOG&ER (Logistics & External Relations)**: Confirmed sponsorship funnels, meal plan checks, and shuttle bus route ready monitors.
 *   **Route Protection & Security Clearances**:
-    *   Root Next.js `middleware.ts` intercepts all `/admin/*` routes (except `/admin/login`) and forces redirects on missing `admin_session` cookie, preventing client bundle data leakage.
+    *   Root Next.js `proxy.ts` intercepts all `/admin/*` routes (except `/admin/login`) and forces redirects on missing `admin_session` cookie, preventing client bundle data leakage.
     *   Shared layout performs role-aware sidebar item filtering.
     *   Attempts to manually access forbidden paths render a glassmorphic **"Security Clearance Insufficient"** card explaining which department owns the panel.
 *   **Authenticated Profile Display**: Top bar securely displays the logged-in user's name, department (e.g. DXP, MKT, FINANCE, LOG_ER), and role clearance level.
@@ -459,5 +464,5 @@ npm run db:studio        # Open interactive Prisma Studio Database GUI
 
 ---
 
-*Last Refined: Project architecture verification and feature audit.*
+*Last Refined: Migrated middleware to Next.js 16 proxy convention and resolved hydration mismatch bugs.*
 *Maintained by: AIESEC in Tunisia OC Tech Team*
