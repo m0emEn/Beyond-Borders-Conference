@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Camera, Film, Image, Star } from "lucide-react";
+import { Camera, Film, Image as ImageIcon, Star } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -42,7 +42,7 @@ export default async function MediaTrackerPage() {
                 {item.type === "VIDEO" ? (
                   <Film className="text-accent-purple" size={32} />
                 ) : (
-                  <Image className="text-accent-teal" size={32} />
+                  <ImageIcon className="text-accent-teal" size={32} />
                 )}
               </div>
               <div className="p-4 space-y-2">
