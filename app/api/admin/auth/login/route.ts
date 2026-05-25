@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
+    console.log(email,password)
     const user = await prisma.oCMember.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
