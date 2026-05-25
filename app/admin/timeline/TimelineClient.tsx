@@ -33,10 +33,17 @@ interface TimelineClientProps {
 
 export default function TimelineClient({ initialTasks, members }: TimelineClientProps) {
   const [view, setView] = useState<"kanban" | "timeline" | "calendar" | "table">("kanban");
-  
+
+  // Local task state — enables optimistic DnD updates
+  const [tasks, setTasks] = useState<TaskWithAssignee[]>(initialTasks);
+
   // Filters
   const [deptFilter, setDeptFilter] = useState<string>("ALL");
   const [prioFilter, setPrioFilter] = useState<string>("ALL");
+
+  // Drag state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<Task["status"] | null>(null);
 
   // New task form modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -47,7 +54,11 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
   const [newDept, setNewDept] = useState<Task["department"]>("GENERAL");
 
   const { execute: executeUpdateStatus } = useAction(updateTaskStatus, {
-    onError: (err) => toast.error(err.error?.serverError || "Failed to update task status"),
+    onError: (err) => {
+      toast.error(err.error?.serverError || "Failed to update task status");
+      // Revert optimistic update on error
+      setTasks(initialTasks);
+    },
   });
 
   const { execute: executeCreateTask, status: createStatus } = useAction(createTask, {
@@ -72,11 +83,53 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
   };
 
   const handleStatusChange = (taskId: string, nextStatus: Task["status"]) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: nextStatus } : t))
+    );
     executeUpdateStatus({ id: taskId, status: nextStatus });
   };
 
+  // ── Drag handlers ──────────────────────────────────────────────
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData("taskId", taskId);
+    e.dataTransfer.effectAllowed = "move";
+    setDraggingId(taskId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverStatus(null);
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent, status: Task["status"]) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverStatus(status);
+  };
+
+  const handleColumnDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the column entirely (not entering a child)
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverStatus(null);
+    }
+  };
+
+  const handleColumnDrop = (e: React.DragEvent, status: Task["status"]) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("taskId");
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || task.status === status) {
+      setDraggingId(null);
+      setDragOverStatus(null);
+      return;
+    }
+    handleStatusChange(taskId, status);
+    setDraggingId(null);
+    setDragOverStatus(null);
+  };
+
   // Filtering logic
-  const filteredTasks = initialTasks.filter((t) => {
+  const filteredTasks = tasks.filter((t) => {
     const deptMatch = deptFilter === "ALL" || t.department === deptFilter;
     const prioMatch = prioFilter === "ALL" || t.priority === prioFilter;
     return deptMatch && prioMatch;
@@ -214,10 +267,25 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
                       </Badge>
                     </div>
 
-                    <div className="space-y-3 min-h-[400px] p-2 bg-surface-1/10 rounded-2xl border border-white/5 border-dashed">
+                    <div
+                      className={`space-y-3 min-h-[400px] p-2 rounded-2xl border border-dashed transition-colors duration-150 ${
+                        dragOverStatus === status
+                          ? "bg-accent-purple/5 border-accent-purple/40"
+                          : "bg-surface-1/10 border-white/5"
+                      }`}
+                      onDragOver={(e) => handleColumnDragOver(e, status)}
+                      onDragLeave={handleColumnDragLeave}
+                      onDrop={(e) => handleColumnDrop(e, status)}
+                    >
                       {columnTasks.map((t) => (
-                        <Card
+                        <div
                           key={t.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, t.id)}
+                          onDragEnd={handleDragEnd}
+                          className={`transition-opacity duration-150 ${draggingId === t.id ? "opacity-40" : "opacity-100"}`}
+                        >
+                        <Card
                           className="glass-card border border-white/10 hover:border-white/20 p-4 space-y-3 cursor-grab active:cursor-grabbing bg-surface-1/30"
                         >
                           <div className="flex justify-between items-start gap-2">
@@ -270,6 +338,7 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
                             )}
                           </div>
                         </Card>
+                        </div>
                       ))}
 
                       {columnTasks.length === 0 && (

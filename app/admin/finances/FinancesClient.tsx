@@ -385,7 +385,7 @@ export default function FinancesClient({ initialTransactions }: FinancesClientPr
           </div>
 
           {/* Calculator Results Display */}
-          <div className="bg-surface-2/45 p-6 border border-white/5 rounded-2xl flex flex-col justify-between items-center text-center space-y-4">
+          <div className="bg-surface-2/45 p-6 border border-white/5 rounded-2xl flex flex-col justify-center items-center text-center gap-4">
             <div>
               <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted block">
                 Required Break-Even EP Signups

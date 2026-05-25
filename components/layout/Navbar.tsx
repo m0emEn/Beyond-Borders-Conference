@@ -48,7 +48,7 @@ export function Navbar() {
                 <Link
                   href={href}
                   className={cn(
-                    "relative px-3 py-2 text-sm text-text-secondary transition-colors hover:text-text-primary",
+                    "relative whitespace-nowrap px-2 py-2 text-sm text-text-secondary transition-colors hover:text-text-primary",
                     active && "text-text-primary"
                   )}
                 >
@@ -56,7 +56,7 @@ export function Navbar() {
                   {active && (
                     <motion.span
                       layoutId="nav-underline"
-                      className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-gradient-cta"
+                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-gradient-cta"
                     />
                   )}
                 </Link>

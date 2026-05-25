@@ -89,6 +89,17 @@ async function main() {
     },
   });
 
+  const memberLogEr = await prisma.oCMember.create({
+    data: {
+      fullName: "Ahmed",
+      email: "ahmed@aiesec.net",
+      passwordHash,
+      role: OCRole.OC_LOG_ER_MEMBER,
+      department: OCDepartment.LOG_ER,
+      managerId: vpLogEr.id,
+    },
+  });
+
   // 4. Seed Relational Tasks
   await prisma.task.create({
     data: {
@@ -292,6 +303,7 @@ async function main() {
     logLeader: vpLogEr.fullName,
     memberDxp: memberDxp.fullName,
     memberMkt: memberMkt.fullName,
+    memberLogEr: memberLogEr.fullName,
   });
 }
 

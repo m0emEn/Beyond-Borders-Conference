@@ -9,11 +9,49 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
 const SIMULATED_ACCOUNTS = [
-  { email: "moemen@aiesec.net", label: "OCP (Moemen)" },
-  { email: "yassine@aiesec.net", label: "Finance VP (Yassine)" },
-  { email: "amine@aiesec.net", label: "DXP VP (Amine)" },
-  { email: "sarra@aiesec.net", label: "Logistics VP (Sarra)" },
-  { email: "oussama@aiesec.net", label: "MKT VP (Oussama)" },
+  {
+    group: "Leadership",
+    color: "text-accent-purple border-accent-purple/20 bg-accent-purple/5",
+    dot: "bg-accent-purple",
+    members: [
+      { email: "moemen@aiesec.net", label: "Moemen Sfaxi", role: "OCP" },
+    ],
+  },
+  {
+    group: "DXP",
+    color: "text-accent-teal border-accent-teal/20 bg-accent-teal/5",
+    dot: "bg-accent-teal",
+    members: [
+      { email: "amine@aiesec.net", label: "Amine Daoud", role: "OCVP DXP" },
+      { email: "linda@aiesec.net", label: "Linda", role: "OC DXP Member" },
+    ],
+  },
+  {
+    group: "MKT",
+    color: "text-accent-pink border-accent-pink/20 bg-accent-pink/5",
+    dot: "bg-accent-pink",
+    members: [
+      { email: "oussama@aiesec.net", label: "Oussama", role: "OCVP MKT" },
+      { email: "bilel@aiesec.net", label: "Bilel", role: "OC MKT Member" },
+    ],
+  },
+  {
+    group: "Finance",
+    color: "text-accent-amber border-accent-amber/20 bg-accent-amber/5",
+    dot: "bg-accent-amber",
+    members: [
+      { email: "yassine@aiesec.net", label: "Yassine Trabelsi", role: "OCVP Finance" },
+    ],
+  },
+  {
+    group: "LOG & ER",
+    color: "text-blue-400 border-blue-400/20 bg-blue-400/5",
+    dot: "bg-blue-400",
+    members: [
+      { email: "sarra@aiesec.net", label: "Sarra Ghedas", role: "OCVP LOG&ER" },
+      { email: "ahmed@aiesec.net", label: "Ahmed", role: "OC LOG&ER Member" },
+    ],
+  },
 ];
 
 export default function AdminLoginPage() {
@@ -147,15 +185,28 @@ export default function AdminLoginPage() {
             <span className="text-2xs uppercase tracking-wider text-text-muted font-bold text-center block">
               Quick Clearance Bypass
             </span>
-            <div className="grid grid-cols-2 gap-2">
-              {SIMULATED_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  onClick={() => handleQuickLogin(acc.email)}
-                  className="px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-white/5 hover:border-white/15 rounded-xl text-4xs font-semibold text-text-secondary hover:text-text-primary transition text-center truncate"
-                >
-                  {acc.label}
-                </button>
+            <div className="space-y-2.5">
+              {SIMULATED_ACCOUNTS.map((group) => (
+                <div key={group.group} className={`rounded-xl border p-2.5 ${group.color}`}>
+                  <div className="flex items-center gap-1.5 mb-2 px-0.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${group.dot}`} />
+                    <span className="text-[9px] uppercase font-bold tracking-widest opacity-70">
+                      {group.group}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {group.members.map((acc) => (
+                      <button
+                        key={acc.email}
+                        onClick={() => handleQuickLogin(acc.email)}
+                        className="flex flex-col items-start px-2.5 py-2 bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/15 rounded-lg transition text-left"
+                      >
+                        <span className="text-[11px] font-semibold text-text-primary leading-tight">{acc.label}</span>
+                        <span className="text-[9px] text-text-muted mt-0.5">{acc.role}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
