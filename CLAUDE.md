@@ -459,5 +459,80 @@ npm run db:studio        # Open interactive Prisma Studio Database GUI
 
 ---
 
-*Last Refined: Project architecture verification and feature audit.*
+## 6. Obsidian Vault — AI Memory System
+
+**Vault location**: `D:\aiesec\lcp\BBC\BBC_vault`
+
+This vault is the long-term memory and documentation base for this project. It is designed for both human readability and AI agent usability.
+
+### COLLAB — User Feedback System
+
+**File**: `D:\aiesec\lcp\BBC\BBC_vault\COLLAB.md`
+
+This file is the collaboration channel between user and AI. Read it FIRST, every session, before anything else.
+
+- If **ACTIVE USER NOTE** box is not empty → implement that note before anything else
+- After implementing → log in Session Log, clear the box
+- User note overrides all other priorities (including vault Main Priorities)
+- Healthy implementation: no regressions, no mock data, no security weakening, `npm run build` passes
+
+### AI Agent Rules (MANDATORY)
+
+**Before any session**:
+0. Read `D:\aiesec\lcp\BBC\BBC_vault\COLLAB.md` — check for active user note (PRIORITY ZERO)
+1. Read `00_Project_Command_Center/Current Status.md` — know what is working vs mock vs broken
+2. Read `00_Project_Command_Center/Main Priorities.md` — know what to work on
+3. Read `00_Project_Command_Center/Active Risks.md` — know what not to make worse
+4. Read `GRAPHY.md` — understand how project concepts connect
+
+**During work**:
+- Never assume a feature works — read the code
+- Never mark mock data as "operational"
+- Fix production blockers before adding features
+- Run `npm run build` after every change
+
+**After every session**:
+1. Update `00_Project_Command_Center/Current Status.md`
+2. Update `00_Project_Command_Center/Main Priorities.md`
+3. Add to `00_Project_Command_Center/Decision Log.md` if architectural decision made
+4. Update relevant `03_Features/` page
+5. Create `09_Logs/AI Session Summary - YYYY-MM-DD.md`
+6. Update `GRAPHY.md` if new nodes/relationships added
+
+### Current Production Blockers (As of 2026-05-24)
+
+1. **CRITICAL**: Admin session cookie is unsigned — any value bypasses auth
+   - Fix: Sign JWT in `app/api/admin/auth/login/route.ts`, verify in `middleware.ts`
+
+2. **HIGH**: Sessions admin page uses hardcoded mock data
+   - Fix: Create `app/actions/sessions.ts`, wire to `Session` Prisma model
+
+3. **HIGH**: Marketing admin page uses hardcoded mock campaigns
+   - Fix: Create `app/actions/campaigns.ts`, wire to `Campaign` Prisma model
+
+4. **HIGH**: OC Performance page uses hardcoded team array
+   - Fix: Create `app/actions/oc.ts`, aggregate from `OCMember` + `Task` models
+
+5. **HIGH**: QR scanner not verified end-to-end
+   - Fix: Test full flow: QR generate → scan → CHECKED_IN status update
+
+### Vault Structure
+
+```
+BBC_vault/
+├── GRAPHY.md                        ← Knowledge graph (AI navigation)
+├── 00_Project_Command_Center/       ← Project health, priorities, risks
+├── 01_Product_Vision/               ← Conference concept, EP journey
+├── 02_Platform_Audit/               ← Technical audit, blockers, security
+├── 03_Features/                     ← Per-feature docs (status, gaps, acceptance criteria)
+├── 04_Operations/                   ← Conference operations framework
+├── 05_Technical_Documentation/      ← Architecture, auth, API routes, DB schema
+├── 06_AI_Development_Guidelines/    ← Rules for AI agents working here
+├── 07_Roadmap/                      ← MVP and production roadmaps
+├── 08_Knowledge_Base/               ← AIESEC context, terminology
+├── 09_Logs/                         ← Bug logs, session summaries, change logs
+└── 10_Templates/                    ← Reusable templates for all log types
+```
+
+*Last Refined: 2026-05-24 — Vault and Graphy system initialized.*
 *Maintained by: AIESEC in Tunisia OC Tech Team*

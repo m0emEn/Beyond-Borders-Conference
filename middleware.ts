@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { verifyAdminJWT } from "@/lib/auth/jwt";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Protect all /admin routes except /admin/login
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const session = request.cookies.get("admin_session");
-    if (!session) {
-      const loginUrl = new URL("/admin/login", request.url);
+    const loginUrl = new URL("/admin/login", request.url);
+
+    if (!session?.value) {
       return NextResponse.redirect(loginUrl);
+    }
+
+    const payload = await verifyAdminJWT(session.value);
+    if (!payload) {
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete("admin_session");
+      return response;
     }
   }
 
@@ -17,6 +25,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Apply middleware to all admin routes
   matcher: ["/admin/:path*"],
 };

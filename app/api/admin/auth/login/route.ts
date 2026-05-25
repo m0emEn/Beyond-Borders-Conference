@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { signAdminJWT } from "@/lib/auth/jwt";
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Query the AIESEC OC member in database
     const user = await prisma.oCMember.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
@@ -26,7 +26,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Cryptographic comparison of password hashes
     const match = bcrypt.compareSync(password, user.passwordHash);
     if (!match) {
       return NextResponse.json(
@@ -35,7 +34,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Return session package and set secure cookie
+    const token = await signAdminJWT({
+      memberId: user.id,
+      role: user.role,
+      department: user.department,
+    });
+
     const response = NextResponse.json({
       data: {
         id: user.id,
@@ -46,16 +50,16 @@ export async function POST(request: Request) {
       },
     });
 
-    response.cookies.set("admin_session", JSON.stringify({ email: user.email, role: user.role }), {
+    response.cookies.set("admin_session", token, {
+      httpOnly: true,
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     });
 
     return response;
   } catch (error) {
-    console.error("API Auth login error:", error);
     return NextResponse.json(
       { error: "Internal security vault error occurred." },
       { status: 500 }
