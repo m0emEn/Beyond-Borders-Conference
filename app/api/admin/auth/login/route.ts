@@ -2,9 +2,20 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signAdminJWT } from "@/lib/auth/jwt";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 5 login attempts per 60 seconds per IP
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const limiter = rateLimit(`login:${ip}`, { maxRequests: 5, windowSeconds: 60 });
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: `Too many login attempts. Try again in ${limiter.resetInSeconds}s.` },
+        { status: 429, headers: { "Retry-After": String(limiter.resetInSeconds) } }
+      );
+    }
+
     const body = await request.json();
     const { email, password } = body;
 
@@ -14,7 +25,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    console.log(email,password)
     const user = await prisma.oCMember.findUnique({
       where: { email: email.toLowerCase().trim() },
     });

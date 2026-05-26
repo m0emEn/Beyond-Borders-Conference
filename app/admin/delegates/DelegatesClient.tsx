@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   Users,
   Search,
@@ -33,6 +35,8 @@ export default function DelegatesClient({ initialDelegates }: DelegatesClientPro
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [paymentFilter, setPaymentFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // Selected Delegate for detail drawer overlay
   const [selectedDelegate, setSelectedDelegate] = useState<Registration | null>(null);
@@ -54,26 +58,37 @@ export default function DelegatesClient({ initialDelegates }: DelegatesClientPro
   });
 
   // Search/Filter matching
-  const filtered = initialDelegates.filter((d) => {
-    const searchLower = search.toLowerCase();
-    const searchMatch =
-      d.fullName.toLowerCase().includes(searchLower) ||
-      d.email.toLowerCase().includes(searchLower) ||
-      d.delegateId.toLowerCase().includes(searchLower) ||
-      d.nationality.toLowerCase().includes(searchLower);
+  const filtered = useMemo(() => {
+    setCurrentPage(1); // Reset page on filter change
+    return initialDelegates.filter((d) => {
+      const searchLower = search.toLowerCase();
+      const searchMatch =
+        d.fullName.toLowerCase().includes(searchLower) ||
+        d.email.toLowerCase().includes(searchLower) ||
+        d.delegateId.toLowerCase().includes(searchLower) ||
+        d.nationality.toLowerCase().includes(searchLower);
 
-    const statusMatch = statusFilter === "ALL" || d.status === statusFilter;
-    const paymentMatch = paymentFilter === "ALL" || d.paymentStatus === paymentFilter;
+      const statusMatch = statusFilter === "ALL" || d.status === statusFilter;
+      const paymentMatch = paymentFilter === "ALL" || d.paymentStatus === paymentFilter;
 
-    return searchMatch && statusMatch && paymentMatch;
-  });
+      return searchMatch && statusMatch && paymentMatch;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDelegates, search, statusFilter, paymentFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const handleStatusUpdate = (id: string, nextStatus: any) => {
-    executeStatusUpdate({ id, status: nextStatus });
+    if (window.confirm(`Are you sure you want to update this delegate's status to ${nextStatus}?`)) {
+      executeStatusUpdate({ id, status: nextStatus });
+    }
   };
 
   const handlePaymentUpdate = (id: string, nextPayment: any) => {
-    executePaymentUpdate({ id, paymentStatus: nextPayment });
+    if (window.confirm(`Are you sure you want to update this delegate's payment to ${nextPayment}?`)) {
+      executePaymentUpdate({ id, paymentStatus: nextPayment });
+    }
   };
 
   // Mock Export files triggers
@@ -117,8 +132,13 @@ export default function DelegatesClient({ initialDelegates }: DelegatesClientPro
           </p>
         </div>
 
-        {/* Exports tools */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/delegates/emergency">
+            <Button size="sm" variant="glass" className="flex items-center gap-1.5 text-accent-amber border-accent-amber/30">
+              <Phone size={14} />
+              Emergency List
+            </Button>
+          </Link>
           <Button onClick={() => triggerExport("CSV")} size="sm" variant="outline" className="flex items-center gap-1.5">
             <Download size={14} />
             CSV
@@ -200,7 +220,7 @@ export default function DelegatesClient({ initialDelegates }: DelegatesClientPro
                   </td>
                 </tr>
               )}
-              {filtered.map((d) => (
+              {paginated.map((d) => (
                 <tr key={d.id} className="hover:bg-white/5 transition">
                   <td className="p-4 font-mono font-bold text-accent-pink">{d.delegateId}</td>
                   <td className="p-4">
@@ -227,6 +247,34 @@ export default function DelegatesClient({ initialDelegates }: DelegatesClientPro
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {filtered.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-white/5">
+            <span className="text-xs text-text-muted">
+              Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length} delegates
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/10 bg-surface-2 text-text-secondary hover:border-white/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-text-secondary font-mono">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/10 bg-surface-2 text-text-secondary hover:border-white/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* PROFILE DETAIL DRAWER OVERLAY */}
@@ -301,8 +349,7 @@ export default function DelegatesClient({ initialDelegates }: DelegatesClientPro
                   <div className="space-y-2">
                     <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Payment Receipt Slip</span>
                     <div className="rounded-xl overflow-hidden border border-white/10 relative h-32 w-full bg-surface-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={selectedDelegate.paymentProof} className="object-cover w-full h-full" alt="Manual Slip" />
+                      <Image src={selectedDelegate.paymentProof} fill className="object-cover" alt="Manual Slip" />
                     </div>
                   </div>
                 )}

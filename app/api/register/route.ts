@@ -1,45 +1,72 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { PaymentStatus, RegistrationStatus } from "@prisma/client";
+import { PaymentStatus, RegistrationStatus, Prisma } from "@prisma/client";
+import { z } from "zod";
+import { rateLimit } from "@/lib/rate-limit";
+
+const registerSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(1, "Phone number is required"),
+  nationality: z.string().min(1, "Nationality is required"),
+  gender: z.string().min(1, "Gender is required"),
+  universityOccupation: z.string().optional(),
+  emergencyName: z.string().optional(),
+  emergencyPhone: z.string().optional(),
+  dietaryPrefs: z.array(z.string()).optional(),
+  arrivalDate: z.string().nullable().optional(),
+  departureDate: z.string().nullable().optional(),
+  motivation: z.string().min(1, "Motivation is required"),
+  paymentProof: z.string().nullable().optional(),
+  termsAccepted: z.literal(true, {
+    error: "You must accept the terms and conditions."
+  })
+});
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 3 registrations per 60 seconds per IP
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const limiter = rateLimit(`register:${ip}`, { maxRequests: 3, windowSeconds: 60 });
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: `Too many registration attempts. Please try again in ${limiter.resetInSeconds} seconds.` },
+        { status: 429, headers: { "Retry-After": String(limiter.resetInSeconds) } }
+      );
+    }
+
+    // 1. Check Registration Window
+    const openDateStr = process.env.NEXT_PUBLIC_REGISTRATION_OPEN_DATE;
+    const closeDateStr = process.env.NEXT_PUBLIC_REGISTRATION_CLOSE_DATE;
+    
+    if (openDateStr && closeDateStr) {
+      const now = new Date();
+      const openDate = new Date(openDateStr);
+      const closeDate = new Date(closeDateStr);
+      
+      if (now < openDate) {
+        return NextResponse.json({ error: "Registration has not opened yet." }, { status: 403 });
+      }
+      if (now > closeDate) {
+        return NextResponse.json({ error: "Registration is closed." }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
-    const {
-      fullName,
-      email,
-      phone,
-      nationality,
-      gender,
-      universityOccupation,
-      emergencyName,
-      emergencyPhone,
-      dietaryPrefs,
-      arrivalDate,
-      departureDate,
-      motivation,
-      paymentProof,
-      termsAccepted,
-    } = body;
 
-    // 1. Basic validation
-    if (!fullName || !email || !phone || !nationality || !gender || !motivation) {
+    // 2. Zod Validation
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Required fields are missing." },
+        { error: parsed.error.issues[0].message },
         { status: 400 }
       );
     }
+    const data = parsed.data;
 
-    if (!termsAccepted) {
-      return NextResponse.json(
-        { error: "You must accept the terms and conditions." },
-        { status: 400 }
-      );
-    }
-
-    // 2. Check for duplicate email
+    // 3. Check for duplicate email
     const existing = await prisma.registration.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email: data.email.toLowerCase().trim() },
     });
 
     if (existing) {
@@ -49,32 +76,45 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Generate unique sequential delegate ID (e.g. BBC-2026-0042)
-    const count = await prisma.registration.count();
-    const sequence = String(count + 1).padStart(4, "0");
-    const delegateId = `BBC-2026-${sequence}`;
+    // 4. Generate unique sequential delegate ID and Save (Transaction to avoid race condition)
+    const registration = await prisma.$transaction(async (tx) => {
+      const lastReg = await tx.registration.findFirst({
+        orderBy: { delegateId: 'desc' },
+      });
+      
+      let nextSeq = 1;
+      if (lastReg && lastReg.delegateId.startsWith('BBC-2026-')) {
+        const lastNum = parseInt(lastReg.delegateId.replace('BBC-2026-', ''), 10);
+        if (!isNaN(lastNum)) {
+          nextSeq = lastNum + 1;
+        }
+      }
+      
+      const delegateId = `BBC-2026-${String(nextSeq).padStart(4, "0")}`;
 
-    // 4. Save to database
-    const registration = await prisma.registration.create({
-      data: {
-        delegateId,
-        fullName: fullName.trim(),
-        email: email.toLowerCase().trim(),
-        phone: phone.trim(),
-        nationality,
-        gender,
-        universityOccupation: universityOccupation?.trim() || "",
-        emergencyName: emergencyName?.trim() || "",
-        emergencyPhone: emergencyPhone?.trim() || "",
-        dietaryPrefs: dietaryPrefs || [],
-        arrivalDate: arrivalDate ? new Date(arrivalDate) : null,
-        departureDate: departureDate ? new Date(departureDate) : null,
-        motivation: motivation.trim(),
-        paymentStatus: paymentProof ? PaymentStatus.UPLOADED : PaymentStatus.PENDING,
-        paymentProof: paymentProof || null,
-        status: RegistrationStatus.PENDING,
-        termsAccepted: true,
-      },
+      return tx.registration.create({
+        data: {
+          delegateId,
+          fullName: data.fullName.trim(),
+          email: data.email.toLowerCase().trim(),
+          phone: data.phone.trim(),
+          nationality: data.nationality,
+          gender: data.gender,
+          universityOccupation: data.universityOccupation?.trim() || "",
+          emergencyName: data.emergencyName?.trim() || "",
+          emergencyPhone: data.emergencyPhone?.trim() || "",
+          dietaryPrefs: data.dietaryPrefs || [],
+          arrivalDate: data.arrivalDate ? new Date(data.arrivalDate) : null,
+          departureDate: data.departureDate ? new Date(data.departureDate) : null,
+          motivation: data.motivation.trim(),
+          paymentStatus: data.paymentProof ? PaymentStatus.UPLOADED : PaymentStatus.PENDING,
+          paymentProof: data.paymentProof || null,
+          status: RegistrationStatus.PENDING,
+          termsAccepted: true,
+        },
+      });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable
     });
 
     // 5. Send confirmation email using Resend REST API (gracefully handles failure)

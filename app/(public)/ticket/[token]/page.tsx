@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import Image from "next/image";
 
 export default async function TicketPage({ params }: { params: { token: string } }) {
   const delegate = await prisma.registration.findUnique({
@@ -55,7 +56,7 @@ export default async function TicketPage({ params }: { params: { token: string }
           </div>
 
           <div className="bg-white p-4 rounded-2xl mx-auto w-fit shadow-inner">
-            <img src={qrDataUrl} alt="QR Code" className="w-48 h-48" />
+            <Image src={qrDataUrl} alt="QR Code" width={192} height={192} className="w-48 h-48" />
           </div>
 
           <p className="text-xs text-text-secondary">

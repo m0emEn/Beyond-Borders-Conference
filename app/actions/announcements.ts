@@ -54,3 +54,45 @@ export const toggleAnnouncement = announcementAction
     revalidatePath("/admin/announcements");
     return { success: true, post };
   });
+
+const updateSchema = z.object({
+  id: z.string(),
+  title: z.string().optional(),
+  content: z.string().min(1, "Content is required"),
+  type: z.nativeEnum(PostType),
+  pinned: z.boolean(),
+  status: z.nativeEnum(PostStatus),
+});
+
+export const updateAnnouncement = announcementAction
+  .schema(updateSchema)
+  .action(async ({ parsedInput: { id, title, content, type, pinned, status } }) => {
+    const post = await prisma.post.update({
+      where: { id },
+      data: {
+        title,
+        content,
+        type,
+        pinned,
+        status,
+      },
+    });
+
+    revalidatePath("/admin/announcements");
+    return { success: true, post };
+  });
+
+const deleteSchema = z.object({
+  id: z.string(),
+});
+
+export const deleteAnnouncement = announcementAction
+  .schema(deleteSchema)
+  .action(async ({ parsedInput: { id } }) => {
+    await prisma.post.delete({
+      where: { id },
+    });
+
+    revalidatePath("/admin/announcements");
+    return { success: true };
+  });

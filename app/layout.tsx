@@ -37,6 +37,8 @@ export const metadata: Metadata = {
   ],
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -47,7 +49,10 @@ export default function RootLayout({
       lang="en"
       className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster theme="dark" position="top-right" richColors />
+      </body>
     </html>
   );
 }

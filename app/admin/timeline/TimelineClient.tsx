@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   KanbanSquare,
@@ -40,6 +40,8 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
   // Filters
   const [deptFilter, setDeptFilter] = useState<string>("ALL");
   const [prioFilter, setPrioFilter] = useState<string>("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   // Drag state
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -129,11 +131,18 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
   };
 
   // Filtering logic
-  const filteredTasks = tasks.filter((t) => {
-    const deptMatch = deptFilter === "ALL" || t.department === deptFilter;
-    const prioMatch = prioFilter === "ALL" || t.priority === prioFilter;
-    return deptMatch && prioMatch;
-  });
+  const filteredTasks = useMemo(() => {
+    setCurrentPage(1); // Reset page on filter change
+    return tasks.filter((t) => {
+      const deptMatch = deptFilter === "ALL" || t.department === deptFilter;
+      const prioMatch = prioFilter === "ALL" || t.priority === prioFilter;
+      return deptMatch && prioMatch;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, deptFilter, prioFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / PAGE_SIZE));
+  const paginatedTasks = filteredTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const getPriorityColor = (p: Task["priority"]) => {
     switch (p) {
@@ -472,7 +481,7 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
                         <td colSpan={6} className="p-4 text-center text-text-muted text-xs">No tasks found.</td>
                       </tr>
                     )}
-                    {filteredTasks.map((t) => (
+                    {paginatedTasks.map((t) => (
                       <tr key={t.id} className="hover:bg-white/10 transition">
                         <td className="p-4">{getStatusIcon(t.status)}</td>
                         <td className="p-4 font-semibold text-text-primary">{t.title}</td>
@@ -489,6 +498,34 @@ export default function TimelineClient({ initialTasks, members }: TimelineClient
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Controls */}
+              {filteredTasks.length > PAGE_SIZE && (
+                <div className="flex items-center justify-between px-5 py-3 border-t border-white/5">
+                  <span className="text-xs text-text-muted">
+                    Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredTasks.length)} of {filteredTasks.length} tasks
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/10 bg-surface-2 text-text-secondary hover:border-white/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-xs text-text-secondary font-mono">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/10 bg-surface-2 text-text-secondary hover:border-white/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

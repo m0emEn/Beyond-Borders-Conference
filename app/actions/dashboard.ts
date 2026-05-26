@@ -24,7 +24,7 @@ export async function getDashboardStatsRaw() {
     prisma.registration.count({ where: { paymentStatus: PaymentStatus.PENDING } }),
     prisma.facilitatorApplication.count({ where: { status: "APPROVED" } }),
     prisma.facilitatorApplication.count(),
-    prisma.registration.findMany({ select: { dietaryPrefs: true } }),
+    prisma.registration.findMany({ select: { dietaryPrefs: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     prisma.campaign.findMany(),
     prisma.financialTransaction.findMany(),
     prisma.sponsor.findMany(),
@@ -33,17 +33,34 @@ export async function getDashboardStatsRaw() {
 
   let vegetarianCount = 0;
   let glutenFreeCount = 0;
+  const timelineMap: Record<string, number> = {};
+
   allRegistrations.forEach((reg) => {
     if (reg.dietaryPrefs.includes("Vegetarian")) vegetarianCount++;
     if (reg.dietaryPrefs.includes("Gluten-Free")) glutenFreeCount++;
+
+    const dateStr = reg.createdAt.toISOString().split("T")[0];
+    const shortDate = new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    timelineMap[shortDate] = (timelineMap[shortDate] || 0) + 1;
+  });
+
+  let cumulativeSignups = 0;
+  const signupsTimeline = Object.entries(timelineMap).map(([date, count]) => {
+    cumulativeSignups += count;
+    return { date, signups: cumulativeSignups };
   });
 
   const inflows = transactions.filter((t) => t.type === "INCOME").reduce((a, t) => a + t.amount, 0);
   const outflows = transactions.filter((t) => t.type === "EXPENSE").reduce((a, t) => a + t.amount, 0);
   const readyItems = logisticsItems.filter((l) => l.status === "READY").length;
 
+  const ticketPrice = 85;
+  const variableCosts = 35;
+  const fixedCosts = outflows > 0 ? outflows : 3800;
+  const breakEvenEPs = Math.ceil(fixedCosts / (ticketPrice - variableCosts));
+
   return {
-    ocp: { totalRegistrations, confirmedDelegates, pendingPayments, facilitatorsApproved, totalFacilitators },
+    ocp: { totalRegistrations, confirmedDelegates, pendingPayments, facilitatorsApproved, totalFacilitators, signupsTimeline },
     dxp: {
       totalEPs: totalRegistrations,
       approvedFacilitators: facilitatorsApproved,
@@ -57,7 +74,7 @@ export async function getDashboardStatsRaw() {
       conversions: campaigns.reduce((a, c) => a + c.conversions, 0),
       topCampaigns: [...campaigns].sort((a, b) => b.conversions - a.conversions).slice(0, 2),
     },
-    finance: { inflows, outflows, netReserves: inflows - outflows },
+    finance: { inflows, outflows, netReserves: inflows - outflows, breakEvenEPs },
     log_er: {
       confirmedSponsorships: sponsors
         .filter((s) => s.outreachStatus === "CONFIRMED")
@@ -92,12 +109,25 @@ export const getDashboardStats = actionClient
     };
 
     const allRegistrations = await prisma.registration.findMany({
-      select: { dietaryPrefs: true },
+      select: { dietaryPrefs: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
     });
+    
+    const timelineMap: Record<string, number> = {};
     
     allRegistrations.forEach((reg) => {
       if (reg.dietaryPrefs.includes("Vegetarian")) dxpStats.vegetarianCount++;
       if (reg.dietaryPrefs.includes("Gluten-Free")) dxpStats.glutenFreeCount++;
+      
+      const dateStr = reg.createdAt.toISOString().split("T")[0];
+      const shortDate = new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      timelineMap[shortDate] = (timelineMap[shortDate] || 0) + 1;
+    });
+
+    let cumulativeSignups = 0;
+    const signupsTimeline = Object.entries(timelineMap).map(([date, count]) => {
+      cumulativeSignups += count;
+      return { date, signups: cumulativeSignups };
     });
 
     // MKT Stats
@@ -113,10 +143,19 @@ export const getDashboardStats = actionClient
     const transactions = await prisma.financialTransaction.findMany();
     const inflows = transactions.filter(t => t.type === "INCOME").reduce((acc, t) => acc + t.amount, 0);
     const outflows = transactions.filter(t => t.type === "EXPENSE").reduce((acc, t) => acc + t.amount, 0);
+    
+    const ticketPrice = 85;
+    const variableCosts = 35;
+    // We treat outflows as fixed costs if they aren't variable (simplification)
+    // Actual formula: breakEven = FixedCosts / (Price - VariableCosts)
+    const fixedCosts = outflows > 0 ? outflows : 3800;
+    const breakEvenEPs = Math.ceil(fixedCosts / (ticketPrice - variableCosts));
+
     const financeStats = {
       inflows,
       outflows,
       netReserves: inflows - outflows,
+      breakEvenEPs,
     };
 
     // LOG_ER Stats
@@ -140,6 +179,7 @@ export const getDashboardStats = actionClient
         pendingPayments,
         facilitatorsApproved,
         totalFacilitators,
+        signupsTimeline,
       },
       dxp: dxpStats,
       mkt: mktStats,

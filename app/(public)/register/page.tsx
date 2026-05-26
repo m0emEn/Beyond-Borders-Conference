@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -33,6 +33,29 @@ export default function RegisterPage() {
   const [successData, setSuccessData] = useState<{
     delegateId: string;
   } | null>(null);
+  
+  const [windowState, setWindowState] = useState<"open" | "closed" | "early" | "loading">("loading");
+
+  useEffect(() => {
+    const openDateStr = process.env.NEXT_PUBLIC_REGISTRATION_OPEN_DATE;
+    const closeDateStr = process.env.NEXT_PUBLIC_REGISTRATION_CLOSE_DATE;
+    
+    if (openDateStr && closeDateStr) {
+      const now = new Date();
+      const openDate = new Date(openDateStr);
+      const closeDate = new Date(closeDateStr);
+      
+      if (now < openDate) {
+        setWindowState("early");
+      } else if (now > closeDate) {
+        setWindowState("closed");
+      } else {
+        setWindowState("open");
+      }
+    } else {
+      setWindowState("open");
+    }
+  }, []);
 
   // Form Fields
   const [fullName, setFullName] = useState("");
@@ -147,6 +170,44 @@ export default function RegisterPage() {
   };
 
   // ─── RENDER SUCCESS STATE ───────────────────────────────────
+  if (windowState === "loading") {
+    return <div className="min-h-screen bg-bg flex items-center justify-center text-text-muted">Loading...</div>;
+  }
+
+  if (windowState !== "open") {
+    const isClosed = windowState === "closed";
+    return (
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center pt-24 pb-16">
+        <div className="section-container max-w-2xl px-4 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="glass-card p-8 md:p-12 border border-accent-purple/30 bg-gradient-to-br from-accent-purple/5 to-transparent shadow-glow-purple"
+          >
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-accent-purple/10 mb-6">
+              <AlertCircle className="text-accent-purple" size={48} />
+            </div>
+            <Badge variant="purple" className="mb-4">
+              {isClosed ? "Registration Closed" : "Registration Not Open"}
+            </Badge>
+            <h1 className="font-display text-3xl font-bold md:text-4xl text-text-primary">
+              {isClosed ? "We've Reached Capacity" : "Coming Soon"}
+            </h1>
+            <p className="mt-4 text-sm text-text-secondary leading-relaxed">
+              {isClosed 
+                ? "Registration for Beyond Borders Conference 2026 is officially closed. Thank you to everyone who applied!"
+                : "Registration will open soon. Please check back later."}
+            </p>
+            <Button href="/" className="mt-10 w-full md:w-auto" variant="glass">
+              Back to Home
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   if (successData) {
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center pt-24 pb-16">

@@ -28,6 +28,25 @@ export const updateFacilitatorStatus = facilitatorAction
       },
     });
 
+    if (status === "APPROVED") {
+      await prisma.facilitator.upsert({
+        where: { email: app.email },
+        update: {
+          fullName: app.fullName,
+          nationality: app.nationality,
+          bio: app.experience,
+          applicationId: app.id,
+        },
+        create: {
+          fullName: app.fullName,
+          email: app.email,
+          nationality: app.nationality,
+          bio: app.experience,
+          applicationId: app.id,
+        },
+      });
+    }
+
     // Send Resend Email logic
     const resendApiKey = process.env.RESEND_API_KEY;
     const emailFrom = process.env.EMAIL_FROM || "noreply@beyondbordersconference.tn";

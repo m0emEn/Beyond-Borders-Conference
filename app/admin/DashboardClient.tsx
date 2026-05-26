@@ -80,11 +80,7 @@ export default function DashboardClient({ role, stats }: Props) {
                 <span className="text-2xs uppercase text-text-muted font-bold tracking-wider">Conference Signups Timeline</span>
                 <div className="h-44 w-full bg-surface-3/15 rounded-2xl border border-white/5 p-4 overflow-hidden text-xs">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={[
-                      { date: "May 15", signups: 12 }, { date: "May 16", signups: 19 }, { date: "May 17", signups: 25 },
-                      { date: "May 18", signups: 32 }, { date: "May 19", signups: 45 }, { date: "May 20", signups: 60 },
-                      { date: "May 21", signups: 85 }, { date: "May 22", signups: 110 }, { date: "May 23", signups: 142 },
-                    ]}>
+                    <AreaChart data={stats?.ocp?.signupsTimeline?.length ? stats.ocp.signupsTimeline : [{ date: "No data", signups: 0 }]}>
                       <defs>
                         <linearGradient id="colorSignups" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#c084fc" stopOpacity={0.3} />
@@ -119,7 +115,7 @@ export default function DashboardClient({ role, stats }: Props) {
               {[
                 { label: "Total EPs Registered", value: `${stats?.dxp?.totalEPs ?? "..."} Delegates`, icon: Users, color: "text-accent-purple", bg: "bg-accent-purple/10" },
                 { label: "Facilitators Approved", value: `${stats?.dxp?.approvedFacilitators ?? "..."} Approved`, icon: Award, color: "text-accent-pink", bg: "bg-accent-pink/10" },
-                { label: "Survey Satisfaction Avg", value: `${stats?.dxp?.avgSatisfaction ?? "..."} Rating`, icon: Star, color: "text-accent-teal", bg: "bg-accent-teal/10" },
+                { label: "Survey Satisfaction Avg", value: `${stats?.dxp?.avgSatisfaction === "4.8 / 5.0" ? "N/A" : (stats?.dxp?.avgSatisfaction ?? "...")}`, icon: Star, color: "text-accent-teal", bg: "bg-accent-teal/10" },
               ].map((s) => {
                 const Icon = s.icon;
                 return (
@@ -217,7 +213,7 @@ export default function DashboardClient({ role, stats }: Props) {
             <Card className="glass-card border border-white/10 p-6 bg-surface-1/25 flex flex-col items-center text-center space-y-4">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted">Required Break-Even EP Signups</span>
-                <h2 className="text-4xl font-black font-display text-accent-teal mt-2">64</h2>
+                <h2 className="text-4xl font-black font-display text-accent-teal mt-2">{stats?.finance?.breakEvenEPs ?? "..."}</h2>
                 <span className="text-3xs text-text-secondary mt-1 block">Delegates at 85 TND pricing ticket</span>
               </div>
               <Button href="/admin/finances" size="sm" variant="glass">Manage Calculator Sliders</Button>

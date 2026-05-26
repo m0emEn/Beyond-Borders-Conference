@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -103,12 +104,14 @@ function MediaCard({ item }: { item: MediaItem }) {
         className="block relative"
       >
         {!isVideo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.url}
-            alt={item.caption ?? "Gallery image"}
-            className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          <div className="w-full aspect-video relative">
+            <Image
+              src={item.url}
+              alt={item.caption ?? "Gallery image"}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
         ) : (
           <div className="w-full aspect-video bg-surface-2/60 flex flex-col items-center justify-center gap-2 border-b border-white/5">
             <Film className="text-accent-purple" size={32} />

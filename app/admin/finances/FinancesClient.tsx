@@ -12,13 +12,16 @@ import {
   AlertTriangle,
   FolderOpen,
   PieChart,
+  Trash2,
+  Edit2,
+  X
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { FinancialTransaction } from "@prisma/client";
-import { createTransaction } from "@/app/actions/finances";
+import { createTransaction, updateTransaction, deleteTransaction } from "@/app/actions/finances";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 
@@ -28,6 +31,7 @@ interface FinancesClientProps {
 
 export default function FinancesClient({ initialTransactions }: FinancesClientProps) {
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form states
   const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME");
@@ -40,19 +44,59 @@ export default function FinancesClient({ initialTransactions }: FinancesClientPr
   const [fixedCosts, setFixedCosts] = useState(3800); // 3800 TND (venue deposit, marketing, media)
   const [variableCosts, setVariableCosts] = useState(35); // 35 TND per EP (food, credentials, bag)
 
-  const { execute, status: actionStatus } = useAction(createTransaction, {
+  const resetForm = () => {
+    setEditingId(null);
+    setType("INCOME");
+    setCategory("SPONSORSHIPS");
+    setAmount("");
+    setDesc("");
+  };
+
+  const { execute: executeCreate, status: createStatus } = useAction(createTransaction, {
     onSuccess: () => {
       toast.success("Transaction booked successfully.");
-      setAmount("");
-      setDesc("");
+      resetForm();
     },
     onError: (err) => toast.error(err.error?.serverError || "Failed to book transaction"),
   });
 
-  const handleAddTransaction = (e: React.FormEvent) => {
+  const { execute: executeUpdate, status: updateStatus } = useAction(updateTransaction, {
+    onSuccess: () => {
+      toast.success("Transaction updated successfully.");
+      resetForm();
+    },
+    onError: (err) => toast.error(err.error?.serverError || "Failed to update transaction"),
+  });
+
+  const { execute: executeDelete } = useAction(deleteTransaction, {
+    onSuccess: () => toast.success("Transaction deleted successfully."),
+    onError: (err) => toast.error(err.error?.serverError || "Failed to delete transaction"),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
-    execute({ type: type as any, category: category as any, amount: parseFloat(amount), description: desc });
+    
+    if (editingId) {
+      executeUpdate({ id: editingId, type: type as any, category: category as any, amount: parseFloat(amount), description: desc });
+    } else {
+      executeCreate({ type: type as any, category: category as any, amount: parseFloat(amount), description: desc });
+    }
+  };
+
+  const handleEdit = (t: FinancialTransaction) => {
+    setEditingId(t.id);
+    setType(t.type);
+    setCategory(t.category);
+    setAmount(t.amount.toString());
+    setDesc(t.description || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this transaction?")) {
+      executeDelete({ id });
+    }
   };
 
   const totalIncome = initialTransactions.filter(t => t.type === "INCOME").reduce((acc, c) => acc + c.amount, 0);
@@ -142,12 +186,21 @@ export default function FinancesClient({ initialTransactions }: FinancesClientPr
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ADD TRANSACTION FORM */}
         <Card className="glass-card border border-white/10 p-6 bg-surface-1/25 h-fit space-y-4">
-          <div className="border-b border-white/5 pb-3">
-            <h3 className="font-display font-semibold text-text-primary text-base">Book Transaction</h3>
-            <p className="text-xs text-text-muted">Manually log revenue or expense entries.</p>
+          <div className="border-b border-white/5 pb-3 flex justify-between items-start">
+            <div>
+              <h3 className="font-display font-semibold text-text-primary text-base">
+                {editingId ? "Edit Transaction" : "Book Transaction"}
+              </h3>
+              <p className="text-xs text-text-muted">Manually log revenue or expense entries.</p>
+            </div>
+            {editingId && (
+              <button onClick={resetForm} className="text-text-muted hover:text-white transition" title="Cancel edit">
+                <X size={16} />
+              </button>
+            )}
           </div>
 
-          <form onSubmit={handleAddTransaction} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 bg-surface-2/65 p-1 border border-white/5 rounded-xl">
               <button
                 type="button"
@@ -222,9 +275,11 @@ export default function FinancesClient({ initialTransactions }: FinancesClientPr
               />
             </div>
 
-            <Button type="submit" disabled={actionStatus === "executing"} className="w-full justify-center gap-2 h-10 mt-2">
+            <Button type="submit" disabled={createStatus === "executing" || updateStatus === "executing"} className="w-full justify-center gap-2 h-10 mt-2">
               <Plus size={16} />
-              {actionStatus === "executing" ? "Booking..." : "Commit Transaction"}
+              {editingId 
+                ? (updateStatus === "executing" ? "Updating..." : "Update Transaction")
+                : (createStatus === "executing" ? "Booking..." : "Commit Transaction")}
             </Button>
           </form>
         </Card>
@@ -259,12 +314,13 @@ export default function FinancesClient({ initialTransactions }: FinancesClientPr
                   <th className="p-3">Description</th>
                   <th className="p-3 font-mono">Amount</th>
                   <th className="p-3 text-right">Date</th>
+                  <th className="p-3 w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {filteredLedger.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center text-text-muted text-xs">
+                    <td colSpan={5} className="p-6 text-center text-text-muted text-xs">
                       No transactions found.
                     </td>
                   </tr>
@@ -281,6 +337,14 @@ export default function FinancesClient({ initialTransactions }: FinancesClientPr
                       {t.type === "INCOME" ? "+" : "-"}{t.amount.toLocaleString()} TND
                     </td>
                     <td className="p-3 text-right font-mono text-text-muted">{new Date(t.date).toISOString().split('T')[0]}</td>
+                    <td className="p-3 flex items-center justify-end gap-2">
+                      <button onClick={() => handleEdit(t)} className="p-1.5 text-text-muted hover:text-white hover:bg-white/5 rounded-lg transition" title="Edit">
+                        <Edit2 size={14} />
+                      </button>
+                      <button onClick={() => handleDelete(t.id)} className="p-1.5 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition" title="Delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

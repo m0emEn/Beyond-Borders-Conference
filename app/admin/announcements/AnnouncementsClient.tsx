@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Pin, PlusCircle } from "lucide-react";
+import { Pin, PlusCircle, Trash2, Edit2, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Post, PostType, PostStatus } from "@prisma/client";
-import { createAnnouncement, toggleAnnouncement } from "@/app/actions/announcements";
+import { createAnnouncement, toggleAnnouncement, updateAnnouncement, deleteAnnouncement } from "@/app/actions/announcements";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 
@@ -20,6 +20,15 @@ export default function AnnouncementsClient({ initialPosts }: AnnouncementsClien
   const [content, setContent] = useState("");
   const [type, setType] = useState<PostType>("ANNOUNCEMENT");
   const [pinned, setPinned] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setTitle("");
+    setContent("");
+    setType("ANNOUNCEMENT");
+    setPinned(false);
+    setEditingId(null);
+  };
 
   const { execute: executeToggle } = useAction(toggleAnnouncement, {
     onError: (err) => toast.error(err.error?.serverError || "Failed to update announcement"),
@@ -28,12 +37,38 @@ export default function AnnouncementsClient({ initialPosts }: AnnouncementsClien
   const { execute: executeCreate, status: createStatus } = useAction(createAnnouncement, {
     onSuccess: () => {
       toast.success("Announcement published successfully");
-      setTitle("");
-      setContent("");
-      setPinned(false);
+      resetForm();
     },
     onError: (err) => toast.error(err.error?.serverError || "Failed to publish announcement"),
   });
+
+  const { execute: executeUpdate, status: updateStatus } = useAction(updateAnnouncement, {
+    onSuccess: () => {
+      toast.success("Announcement updated successfully");
+      resetForm();
+    },
+    onError: (err) => toast.error(err.error?.serverError || "Failed to update announcement"),
+  });
+
+  const { execute: executeDelete } = useAction(deleteAnnouncement, {
+    onSuccess: () => toast.success("Announcement deleted"),
+    onError: (err) => toast.error(err.error?.serverError || "Failed to delete announcement"),
+  });
+
+  const handleEdit = (post: Post) => {
+    setTitle(post.title || "");
+    setContent(post.content);
+    setType(post.type);
+    setPinned(post.pinned);
+    setEditingId(post.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this announcement?")) {
+      executeDelete({ id });
+    }
+  };
 
   const handlePublish = (id: string) => {
     executeToggle({ id, status: "PUBLISHED" });
@@ -43,17 +78,29 @@ export default function AnnouncementsClient({ initialPosts }: AnnouncementsClien
     executeToggle({ id, pinned: !currentPinned });
   };
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
 
-    executeCreate({
-      title: title.trim(),
-      content: content.trim(),
-      type,
-      pinned,
-      status: "PUBLISHED",
-    });
+    if (editingId) {
+      const existing = initialPosts.find((p) => p.id === editingId);
+      executeUpdate({
+        id: editingId,
+        title: title.trim(),
+        content: content.trim(),
+        type,
+        pinned,
+        status: existing?.status || "PUBLISHED",
+      });
+    } else {
+      executeCreate({
+        title: title.trim(),
+        content: content.trim(),
+        type,
+        pinned,
+        status: "PUBLISHED",
+      });
+    }
   };
 
   return (
@@ -76,12 +123,23 @@ export default function AnnouncementsClient({ initialPosts }: AnnouncementsClien
       <div className="grid gap-6 lg:grid-cols-3">
         {/* PUBLISHER COMPOSER FORM */}
         <Card className="glass-card border border-white/10 p-6 bg-surface-1/25 h-fit space-y-4">
-          <div className="border-b border-white/5 pb-3">
-            <h3 className="font-display font-semibold text-text-primary text-base">Composer</h3>
-            <p className="text-xs text-text-muted">Draft and dispatch updates to public timeline feeds.</p>
+          <div className="border-b border-white/5 pb-3 flex justify-between items-start">
+            <div>
+              <h3 className="font-display font-semibold text-text-primary text-base">
+                {editingId ? "Edit Announcement" : "Composer"}
+              </h3>
+              <p className="text-xs text-text-muted">
+                {editingId ? "Update existing announcement content." : "Draft and dispatch updates to public timeline feeds."}
+              </p>
+            </div>
+            {editingId && (
+              <button onClick={resetForm} className="text-text-muted hover:text-white transition" title="Cancel edit">
+                <X size={16} />
+              </button>
+            )}
           </div>
 
-          <form onSubmit={handleCreatePost} className="space-y-4 text-xs">
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div className="flex flex-col gap-1.5">
               <label className="text-text-secondary font-medium">Announcement Headline</label>
               <input
@@ -138,9 +196,11 @@ export default function AnnouncementsClient({ initialPosts }: AnnouncementsClien
               />
             </div>
 
-            <Button type="submit" disabled={createStatus === "executing"} className="w-full justify-center gap-2 h-10 mt-2">
+            <Button type="submit" disabled={createStatus === "executing" || updateStatus === "executing"} className="w-full justify-center gap-2 h-10 mt-2">
               <PlusCircle size={16} />
-              {createStatus === "executing" ? "Publishing..." : "Publish Announcement"}
+              {editingId
+                ? (updateStatus === "executing" ? "Updating..." : "Update Announcement")
+                : (createStatus === "executing" ? "Publishing..." : "Publish Announcement")}
             </Button>
           </form>
         </Card>
@@ -168,13 +228,27 @@ export default function AnnouncementsClient({ initialPosts }: AnnouncementsClien
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handlePinToggle(p.id, p.pinned)}
                       className={`p-1.5 rounded-lg border transition ${p.pinned ? "text-accent-amber border-accent-amber/30 bg-accent-amber/10" : "text-text-muted border-white/5 hover:bg-white/5"}`}
                       title={p.pinned ? "Unpin post" : "Pin post to top"}
                     >
                       <Pin size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(p)}
+                      className="p-1.5 rounded-lg border border-white/5 text-text-muted hover:bg-white/5 hover:text-white transition"
+                      title="Edit announcement"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      className="p-1.5 rounded-lg border border-white/5 text-text-muted hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 transition"
+                      title="Delete announcement"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>

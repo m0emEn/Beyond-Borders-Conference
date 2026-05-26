@@ -19,6 +19,12 @@ export const ourFileRouter = {
       console.log("Upload complete for session plan:", file.url);
       return { uploadedUrl: file.url };
     }),
+
+  galleryMedia: f({ image: { maxFileSize: "8MB", maxFileCount: 1 }, video: { maxFileSize: "32MB", maxFileCount: 1 } })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Upload complete for gallery media:", file.url);
+      return { uploadedUrl: file.url, type: file.type.startsWith("video") ? "VIDEO" : "IMAGE" };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

@@ -75,6 +75,9 @@ model FacilitatorApplication {
   reviewNotes        String?
   reviewedAt         DateTime?
   createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt @default(now())
+
+  facilitator        Facilitator?
 
   @@index([status])
   @@map("facilitator_applications")
@@ -137,6 +140,10 @@ model Session {
   tags        String[]
   status      SessionStatus   @default(DRAFT)
   createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt @default(now())
+
+  facilitatorId String?
+  facilitator   Facilitator?    @relation(fields: [facilitatorId], references: [id])
 
   @@map("sessions")
 }
@@ -184,6 +191,12 @@ model Facilitator {
   bio            String?
   profilePicture String?
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt @default(now())
+
+  applicationId  String?  @unique
+  application    FacilitatorApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  
+  sessions       Session[]
 
   @@map("facilitators")
 }
@@ -197,6 +210,7 @@ model GalleryMedia {
   caption   String?
   featured  Boolean   @default(false)
   createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt @default(now())
 
   @@map("gallery_media")
 }
@@ -216,6 +230,7 @@ enum OCRole {
   OCVP_LOG_ER
   OC_DXP_MEMBER
   OC_MKT_MEMBER
+  OC_FINANCE_MEMBER
   OC_LOG_ER_MEMBER
 }
 
@@ -462,6 +477,7 @@ model Risk {
   @@map("risks")
 }
 
+
 enum RiskCategory {
   FINANCIAL
   OPERATIONAL
@@ -484,6 +500,7 @@ model FeedbackSurvey {
   overallScore          Int                    @default(5)
   comments              String?
   createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   @@map("feedback_surveys")
 }
